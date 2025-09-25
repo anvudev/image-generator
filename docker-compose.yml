@@ -1,0 +1,13 @@
+services:
+  pixel-api:
+    build: .
+    container_name: pixel-api
+    restart: unless-stopped
+    networks:
+      - cloudflared
+    expose:
+      - "8000" # expose cho internal network
+
+networks:
+  cloudflared:
+    name: cloudflared
