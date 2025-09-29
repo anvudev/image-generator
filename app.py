@@ -1,8 +1,7 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 from io import BytesIO
-import json
 
 app = FastAPI(title="Pixel Palette API", version="1.0.0")
 
@@ -59,13 +58,20 @@ def healthz():
     return {"ok": True}
 
 
+@app.get("/palette")
+def get_palette():
+    """Trả về danh sách palette mặc định"""
+    return {
+        "palette": DEFAULT_PALETTE,
+        "description": "Bảng màu mặc định được sử dụng để chuyển đổi ảnh",
+    }
+
+
 @app.post("/convert")
 async def convert_image(
     file: UploadFile = File(..., description="Ảnh đầu vào (png/jpg/webp)"),
     cols: int = 30,
     rows: int = 30,
-    # Cho phép override palette bằng JSON string trong multipart (tuỳ chọn)
-    palette_override: str | None = Form(default=None),
 ):
     # kiểm tra định dạng
     if file.content_type not in {"image/png", "image/jpeg", "image/webp"}:
@@ -80,37 +86,36 @@ async def convert_image(
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Không đọc được ảnh: {e}")
 
-    # Palette: dùng override nếu có, ngược lại dùng mặc định
-    if palette_override:
-        try:
-            p = json.loads(palette_override)
-            # chấp nhận key là string hoặc int
-            palette = {int(k): str(v) for k, v in p.items()}
-        except Exception as e:
-            raise HTTPException(
-                status_code=400, detail=f"palette_override không hợp lệ: {e}"
-            )
-    else:
-        palette = DEFAULT_PALETTE
-
-    palette_rgb = build_palette_rgb(palette)
+    # Sử dụng palette mặc định
+    palette_rgb = build_palette_rgb(DEFAULT_PALETTE)
 
     # Resize về kích thước mong muốn
     img = img.resize((cols, rows), Image.NEAREST)
 
-    # Tạo ma trận chỉ số theo palette
+    # Tạo ma trận chỉ số theo palette và thu thập các màu thực sự được sử dụng
     matrix: list[list[int]] = []
+    used_colors = set()  # Lưu các chỉ số màu thực sự được sử dụng
     px = img.load()
+
     for y in range(rows):
         row = []
         for x in range(cols):
             rgb = px[x, y]
             idx = closest_palette_index(rgb, palette_rgb)
             row.append(idx)
+            used_colors.add(idx)  # Thêm vào set các màu đã dùng
         matrix.append(row)
 
+    # Chỉ trả về các màu thực sự có trong ảnh
+    actual_palette = {idx: DEFAULT_PALETTE[idx] for idx in used_colors}
+
     output = {
-        "meta": {"cols": cols, "rows": rows, "palette": palette, "mode": "index"},
+        "meta": {
+            "cols": cols,
+            "rows": rows,
+            "palette": actual_palette,
+            "mode": "index",
+        },
         "matrix": matrix,
     }
     return output
