@@ -1,13 +1,18 @@
 services:
+  # API Service
   pixel-api:
     build: .
-    container_name: pixel-api
+    container_name: mirai-pixel-api
     restart: unless-stopped
+    environment:
+      - MONGODB_URI=mongodb://mirai-mongodb:27017/
+      - MONGODB_DATABASE=Mirai_Puzzle
     networks:
       - cloudflared
     expose:
-      - "8000" # expose cho internal network
+      - "8000"
 
 networks:
   cloudflared:
+    external: true
     name: cloudflared
