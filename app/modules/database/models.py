@@ -39,13 +39,24 @@ class ImageModel(BaseModel):
 
 # Nested models for History/Level structure
 class CellModel(BaseModel):
-    """Model cho một ô trên board"""
+    """
+    Model cho một ô trên board
+
+    Chỉ validate 3 fields bắt buộc: type, color, element
+    Các fields khác (pipeDirection, pipeSize, barrelSize, iceLevel, v.v.)
+    sẽ được lưu nguyên như frontend gửi lên nhờ extra="allow"
+    """
 
     type: str = Field(..., description="Loại ô (wall/empty/block)")
     color: Optional[str] = Field(None, description="Màu của block")
     element: Optional[str] = Field(
-        None, description="Element đặc biệt (Pipe/Barrel/Ice/Bomb)"
+        None, description="Element đặc biệt (Pipe/Barrel/Ice/Bomb/Lock)"
     )
+
+    class Config:
+        # Cho phép frontend gửi thêm bất kỳ field nào (pipeDirection, pipeSize, etc.)
+        # Pydantic sẽ lưu nguyên các field này vào database
+        extra = "allow"
 
 
 class ContainerContentModel(BaseModel):
@@ -110,7 +121,9 @@ class LevelModel(BaseModel):
     config: LevelConfigModel = Field(..., description="Cấu hình level")
     board: list[list[CellModel]] = Field(..., description="Board game 2D")
     containers: list[ContainerModel] = Field(..., description="Các container")
-    difficultyScore: int = Field(..., description="Điểm độ khó")
+    difficultyScore: float = Field(
+        ..., description="Điểm độ khó (có thể là số thập phân)"
+    )
     solvable: bool = Field(..., description="Level có giải được không")
     timestamp: Optional[str] = Field(None, description="Timestamp (auto-generated)")
     pipeInfo: Optional[list[PipeInfoModel]] = Field(None, description="Thông tin pipes")
@@ -135,7 +148,9 @@ class HistoryLevelModel(BaseModel):
     board: list[list[CellModel]] = Field(..., description="Board game 2D")
     config: LevelConfigModel = Field(..., description="Cấu hình level")
     containers: list[ContainerModel] = Field(..., description="Các container")
-    difficultyScore: int = Field(..., description="Điểm độ khó")
+    difficultyScore: float = Field(
+        ..., description="Điểm độ khó (có thể là số thập phân)"
+    )
     id: Optional[str] = Field(None, description="Level ID (auto-generated)")
     lockInfo: Optional[Any] = Field(None, description="Thông tin lock")
     solvable: bool = Field(..., description="Level có giải được không")
