@@ -5,7 +5,7 @@ services:
     container_name: mirai-pixel-api
     restart: unless-stopped
     environment:
-      - MONGODB_URI=mongodb://mongodb:27017/
+      - MONGODB_URI=mongodb://admin:admin@localhost:27017/
       - MONGODB_DATABASE=Mirai_Puzzle
     networks:
       - cloudflared
